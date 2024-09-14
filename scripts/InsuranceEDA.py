@@ -80,16 +80,7 @@ class InsuranceEDA:
         plt.ylabel('Count')
         plt.xticks(rotation=45)
         plt.show()
-        
-        # # Plot CapitalOutstanding by 10,000 range
-        # plt.figure(figsize=(10, 6))
-        # data_filtered['CapitalOutstandingRange'] = (data_filtered['CapitalOutstanding'] // 10000) * 10000
-        # data_filtered['CapitalOutstandingRange'].value_counts().sort_index().plot(kind='bar', color='purple')
-        # plt.title('Capital Outstanding Distribution by 10,000 Range')
-        # plt.xlabel('Capital Outstanding (Grouped by 10,000)')
-        # plt.ylabel('Count')
-        # plt.xticks(rotation=45)
-        # plt.show()
+
 
         """Plot histograms for numerical columns and bar charts for categorical columns"""
         # Numerical columns
@@ -107,12 +98,46 @@ class InsuranceEDA:
                 plt.show()
     
     def bivariate_analysis(self,data):
-        """Perform correlation analysis for numeric variables"""
-        numeric_cols = ['TotalPremium', 'TotalClaims']
-        corr = data[numeric_cols].corr()
-        sns.heatmap(corr, annot=True, cmap="coolwarm")
-        plt.title("Correlation between TotalPremium and TotalClaims")
+        # Convert TransactionMonth to datetime if not already
+        data['TransactionMonth'] = pd.to_datetime(data['TransactionMonth'])
+        
+        # Sort by PostalCode and TransactionMonth
+        data.sort_values(['PostalCode', 'TransactionMonth'], inplace=True)
+        
+        # Calculate monthly change in TotalPremium and TotalClaims
+        data['MonthlyPremiumChange'] = data.groupby('PostalCode')['TotalPremium'].diff()
+        data['MonthlyClaimsChange'] = data.groupby('PostalCode')['TotalClaims'].diff()
+
+        # Drop rows with NaN values after calculating changes
+        data_filtered = data.dropna(subset=['MonthlyPremiumChange', 'MonthlyClaimsChange'])
+        
+        # Get the top 10 postal codes by count of records
+        top_10_postal_codes = data_filtered['PostalCode'].value_counts().nlargest(10).index
+        data_filtered = data_filtered[data_filtered['PostalCode'].isin(top_10_postal_codes)]
+        
+        # Scatter plot for PostalCode vs MonthlyPremiumChange and MonthlyClaimsChange
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=data_filtered, x='MonthlyPremiumChange', y='MonthlyClaimsChange', hue='PostalCode', palette='viridis')
+        plt.title('Scatter Plot: MonthlyPremiumChange vs MonthlyClaimsChange (Top 10 PostalCodes)')
+        plt.xlabel('Monthly Premium Change')
+        plt.ylabel('Monthly Claims Change')
+        plt.legend(title='PostalCode', bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.show()
+        
+        # Group by PostalCode and calculate correlations between MonthlyPremiumChange and MonthlyClaimsChange
+        postal_group = data_filtered.groupby('PostalCode')[['MonthlyPremiumChange', 'MonthlyClaimsChange']].corr().unstack()
+
+        # Extract the correlation values for each PostalCode
+        postal_corr = postal_group.iloc[:, 1].reset_index()
+        postal_corr.columns = ['PostalCode', 'Correlation']
+
+        # Plot the correlation matrix as a heatmap using pivot_table()
+        plt.figure(figsize=(10, 6))
+        correlation_pivot = postal_corr.pivot_table(index='PostalCode', values='Correlation')
+        sns.heatmap(correlation_pivot, annot=True, cmap='coolwarm', fmt='.2f')
+        plt.title('Correlation between Monthly Premium and Claims Changes (Top 10 PostalCodes)')
+        plt.show()
+
 
     def outlier_detection(self,data):
         """Detect outliers using boxplots"""
@@ -124,12 +149,54 @@ class InsuranceEDA:
             plt.show()
 
     def geographic_trend_analysis(self,data):
-        """Explore trends across different provinces or zipcodes"""
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(x='Province', y='TotalPremium', data=data)
-        plt.xticks(rotation=90)
-        plt.title("Premiums by Province")
+        # """Explore trends across different provinces or zipcodes"""
+        # plt.figure(figsize=(10, 6))
+        # sns.boxplot(x='Province', y='TotalPremium', data=data)
+        # plt.xticks(rotation=90)
+        # plt.title("Premiums by Province")
+        # plt.show()
+        # Aggregate data by Province
+        # Aggregate data by Province
+        province_agg = data.groupby('Province').agg({
+            'CoverType': 'value_counts',
+            'TotalPremium': 'mean',
+            'make': 'value_counts'
+        }).reset_index()
+
+        # Plotting CoverType distribution across different provinces
+        plt.figure(figsize=(12, 6))
+        sns.countplot(data=data, x='Province', hue='CoverType', palette='Set2')
+        plt.title('Insurance Cover Type Distribution by Province')
+        plt.xlabel('Province')
+        plt.ylabel('Count of Cover Types')
+        plt.xticks(rotation=45)
+        plt.legend(title='Cover Type')
+        plt.tight_layout()
         plt.show()
+
+        # Plotting average premium across different provinces
+        plt.figure(figsize=(12, 6))
+        sns.barplot(data=data, x='Province', y='TotalPremium', color='steelblue')  # Use color directly
+        plt.title('Average Premium by Province')
+        plt.xlabel('Province')
+        plt.ylabel('Average Premium')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
+        # Plotting AutoMake distribution across provinces
+        # plt.figure(figsize=(12, 6))
+        # sns.countplot(data=data, x='Province', hue='make', palette='viridis')
+        # plt.title('Auto Make Distribution by Province')
+        # plt.xlabel('Province')
+        # plt.ylabel('Count of Auto Makes')
+        # plt.xticks(rotation=45)
+        # plt.legend(title='Auto Make', bbox_to_anchor=(1.05, 1), loc='upper left')
+        # # Set the y-axis range for magnification (adjust values as needed)
+        # plt.ylim(0, 50)  # Change 50 to the upper limit you'd like
+
+        # plt.tight_layout()
+        # plt.show()
 
     def generate_creative_plots(self,data):
         """Produce creative plots based on EDA findings"""
