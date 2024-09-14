@@ -149,14 +149,6 @@ class InsuranceEDA:
             plt.show()
 
     def geographic_trend_analysis(self,data):
-        # """Explore trends across different provinces or zipcodes"""
-        # plt.figure(figsize=(10, 6))
-        # sns.boxplot(x='Province', y='TotalPremium', data=data)
-        # plt.xticks(rotation=90)
-        # plt.title("Premiums by Province")
-        # plt.show()
-        # Aggregate data by Province
-        # Aggregate data by Province
         province_agg = data.groupby('Province').agg({
             'CoverType': 'value_counts',
             'TotalPremium': 'mean',
@@ -184,37 +176,24 @@ class InsuranceEDA:
         plt.tight_layout()
         plt.show()
 
-        # Plotting AutoMake distribution across provinces
-        # plt.figure(figsize=(12, 6))
-        # sns.countplot(data=data, x='Province', hue='make', palette='viridis')
-        # plt.title('Auto Make Distribution by Province')
-        # plt.xlabel('Province')
-        # plt.ylabel('Count of Auto Makes')
-        # plt.xticks(rotation=45)
-        # plt.legend(title='Auto Make', bbox_to_anchor=(1.05, 1), loc='upper left')
-        # # Set the y-axis range for magnification (adjust values as needed)
-        # plt.ylim(0, 50)  # Change 50 to the upper limit you'd like
 
-        # plt.tight_layout()
-        # plt.show()
-
-    def generate_creative_plots(self,data):
+    def creative_plots(self,data):
         """Produce creative plots based on EDA findings"""
-        # Example 1: Distribution of premiums by car make
+        #  Distribution of premiums by car make
         plt.figure(figsize=(10, 6))
-        sns.boxplot(x='Make', y='TotalPremium', data=data)
+        sns.boxplot(x='make', y='TotalPremium', data=data)
         plt.xticks(rotation=90)
         plt.title("Premiums by Car Make")
         plt.show()
 
-        # Example 2: Claims by Province
+        #  Claims by Province
         plt.figure(figsize=(10, 6))
         sns.barplot(x='Province', y='TotalClaims', data=data)
         plt.xticks(rotation=90)
         plt.title("Claims by Province")
         plt.show()
 
-        # Example 3: Premium vs Claims Scatter Plot
+        #  Premium vs Claims Scatter Plot
         plt.figure(figsize=(8, 6))
         sns.scatterplot(x='TotalPremium', y='TotalClaims', data=data, hue='VehicleType')
         plt.title("Total Premium vs Total Claims")
