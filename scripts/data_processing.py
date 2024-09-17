@@ -45,15 +45,23 @@ class DataProcessing:
                     data.loc[:,col]=data[col].fillna(mode_value[0]) # Replace NaN with mode
         
         return data
-    def catagorize_columns(self,data):
-        numerical_columns=[]
-        catagorical_columns=[]
+    def categorize_columns(self, data):
+        numerical_columns = []
+        categorical_columns = []
+        datetime_columns = []
+        boolean_columns = []
+
         for col in data.columns:
-            if data[col].dtype in ['float64','int64']:
+            if pd.api.types.is_numeric_dtype(data[col]):  # Check for numeric columns (int, float)
                 numerical_columns.append(col)
-            else :
-                catagorical_columns.append(col)
-        return numerical_columns,catagorical_columns
+            elif pd.api.types.is_datetime64_any_dtype(data[col]):  # Check for datetime columns
+                datetime_columns.append(col)
+            elif pd.api.types.is_bool_dtype(data[col]):  # Check for boolean columns
+                boolean_columns.append(col)
+            else:  # Treat anything else as categorical (typically object/string types)
+                categorical_columns.append(col)
+
+        return numerical_columns, categorical_columns, datetime_columns, boolean_columns
     def encoder(self,method, dataframe, columns_label, columns_onehot):
         if method == 'labelEncoder':      
             df_lbl = dataframe.copy()
