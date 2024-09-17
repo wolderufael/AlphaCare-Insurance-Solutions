@@ -11,10 +11,12 @@ class DataProcessing:
         # Removing duplicates
         data = data.drop_duplicates(keep="first")
         return data
-    def replace_outliers_with_mean(self,data, z_threshold=3):
+    def replace_outliers_with_mean(self, data,z_threshold=3):
+        columns_to_drop = ['UnderwrittenCoverID','Country','Bank','IsVATRegistered','Citizenship']
+        # Drop the specified columns from the DataFrame
+        data = data.drop(columns=columns_to_drop, errors='ignore')
         # Iterate through each numeric column
         for col in data.select_dtypes(include=[np.number]).columns:
-            if col not in ['Bearer Id', 'IMSI', 'MSISDN/Number','IMEI']:
                 col_data = data[col].dropna()
                 col_zscore = zscore(col_data)
                 
@@ -26,16 +28,13 @@ class DataProcessing:
                 
                 # Replace outliers in the original DataFrame
                 # Need to align the original index with the calculated z-scores
-                data.loc[data[col].notna() & (abs(zscore(data[col].fillna(0))) > z_threshold), col] = mean_value
+                data.loc[data[col].notna() & (abs(zscore(data[col].fillna(0))) > z_threshold), col] = int(mean_value)
+                return data
     def replace_missing_with_mean_or_mode(self,data):
-        columns_to_drop = ['UnderwrittenCoverID','Country','Bank','IsVATRegistered','Citizenship']
-        # Drop the specified columns from the DataFrame
-        dataframe = dataframe.drop(columns=columns_to_drop, errors='ignore')
-        #iterate over the columns
         for col in data.columns:
-            if col in ['TotalPremium','TotalClaims']:
-                data = data.dropna(subset=[col]) #drop the rows which don't have 'Bearer Id'or'IMSI'
-            elif data[col].dtype == 'float64':  # If the column is numeric (float)
+            # if col in ['TotalPremium','TotalClaims']:
+            #     data = data.dropna(subset=[col]) #drop the rows which don't have 'Bearer Id'or'IMSI'
+            if data[col].dtype == 'float64':  # If the column is numeric (float)
                 mean_value = data[col].mean()
                 data.loc[:,col]=data[col].fillna(mean_value)  # Replace NaN with mean
             elif data[col].dtype == 'object':  # If the column is object (string)
@@ -43,6 +42,15 @@ class DataProcessing:
                 data.loc[:,col]=data[col].fillna(mode_value) # Replace NaN with mode
         
         return data
+    def catagorize_columns(self,data):
+        numerical_columns=[]
+        catagorical_columns=[]
+        for col in data.columns:
+            if data[col].dtype in ['float64','int64']:
+                numerical_columns.append(col)
+            else :
+                catagorical_columns.append(col)
+        return numerical_columns,catagorical_columns
     def encoder(self,method, dataframe, columns_label, columns_onehot):
         if method == 'labelEncoder':      
             df_lbl = dataframe.copy()
@@ -53,27 +61,33 @@ class DataProcessing:
             return df_lbl
         
         elif method == 'oneHotEncoder':
-            df_oh = dataframe.copy()
-            df_oh= pd.get_dummies(data=df_oh, prefix='ohe', prefix_sep='_',
-                        columns=columns_onehot, drop_first=True, dtype='int8')
+            df_oh = dataframe.copy()  # Create a copy of the original DataFrame
+            for col in columns_onehot:
+                # Apply one-hot encoding to each column in columns_onehot
+                df_oh = pd.get_dummies(data=df_oh, prefix=f'ohe_{col}', prefix_sep='_',
+                                    columns=[col], drop_first=True, dtype='int8')
             return df_oh
+
 
     def scaler(self,method, data, columns_scaler):    
         if method == 'standardScaler':        
-            Standard = StandardScaler()
             df_standard = data.copy()
-            df_standard[columns_scaler] = Standard.fit_transform(df_standard[columns_scaler])        
+            Standard = StandardScaler()
+            for col in columns_scaler:
+                df_standard[col] = Standard.fit_transform(df_standard[[col]])  # Scaling each column individually
             return df_standard
             
         elif method == 'minMaxScaler':        
-            MinMax = MinMaxScaler()
             df_minmax = data.copy()
-            df_minmax[columns_scaler] = MinMax.fit_transform(df_minmax[columns_scaler])        
+            MinMax = MinMaxScaler()
+            for col in columns_scaler:
+                df_minmax[col] = MinMax.fit_transform(df_minmax[[col]])  # Scaling each column individually
             return df_minmax
         
         elif method == 'npLog':        
             df_nplog = data.copy()
-            df_nplog[columns_scaler] = np.log(df_nplog[columns_scaler])        
+            for col in columns_scaler:
+                df_nplog[col] = np.log(df_nplog[col])  # Applying log transform to each column individually
             return df_nplog
         
         return data
