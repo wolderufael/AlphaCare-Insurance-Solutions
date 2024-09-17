@@ -31,6 +31,8 @@ class DataProcessing:
                 data.loc[data[col].notna() & (abs(zscore(data[col].fillna(0))) > z_threshold), col] = int(mean_value)
                 return data
     def replace_missing_with_mean_or_mode(self,data):
+        #drop the colum since it have all null values
+        # data.drop('NumberOfVehiclesInFleet', axis=1)
         for col in data.columns:
             # if col in ['TotalPremium','TotalClaims']:
             #     data = data.dropna(subset=[col]) #drop the rows which don't have 'Bearer Id'or'IMSI'
@@ -38,8 +40,9 @@ class DataProcessing:
                 mean_value = data[col].mean()
                 data.loc[:,col]=data[col].fillna(mean_value)  # Replace NaN with mean
             elif data[col].dtype == 'object':  # If the column is object (string)
-                mode_value = data[col].mode()[0]
-                data.loc[:,col]=data[col].fillna(mode_value) # Replace NaN with mode
+                mode_value = data[col].mode()
+                if not mode_value.empty:
+                    data.loc[:,col]=data[col].fillna(mode_value[0]) # Replace NaN with mode
         
         return data
     def catagorize_columns(self,data):
